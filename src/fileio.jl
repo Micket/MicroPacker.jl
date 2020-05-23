@@ -1,9 +1,10 @@
 using HDF5
 
 function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles;
-               surface_voxels=nothing, gb_voxels=nothing, interface_voxels=nothing, overlaps=nothing, compress=false)
+               surface_voxels=nothing, interface_voxels=nothing, overlaps=nothing, compress=false)
     M = size(grain_ids)
     spacing = L ./ size(grain_ids)
+    good_voxels = nothing # zeros(Bool, size(grain_ids))
     h5open(filename + ".dream3d", 'w') do f
         cmpr = compress ? "gzip" : nothing
 

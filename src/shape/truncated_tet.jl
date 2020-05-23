@@ -44,7 +44,7 @@ function (g::TTGenerator)(midpoint, rot)
     TruncatedTriangle(midpoint, rot, g.r(), g.k(), g.d_eq())
 end
 
-volume(t::TruncatedTriangle) = π/6 * t.d_eq^3
+volume(shape::TruncatedTriangle) = π/6 * shape.d_eq^3
 
 function set_midpoint(t::TruncatedTriangle, midpoint)
     return TruncatedTriangle(midpoint, t.rot, t.r, t.k, t.d_eq, t.t, t.vertices)

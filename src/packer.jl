@@ -40,14 +40,12 @@ function euler_angles(R)
     return SA[ϕ, θ, ψ]
 end
 
-volume_to_eq_d(volume) = cbrt(6/π * volume)
-
-function prepare_inclusions(vol_frac_goal::Real, L::AbstractFloat, inclusiontype::Type, generator)
+function prepare_inclusions(vol_frac_goal::AbstractFloat, L::AbstractFloat, inclusiontype::Type, generator)
     ftype = typeof(L)
     total_volume = L^3
 
     # Make random grains
-    total_inclusion_volume = 0.
+    total_inclusion_volume = zero(ftype)
     inclusions = inclusiontype[]
     while total_inclusion_volume < vol_frac_goal * total_volume
         midpoint = L * @SVector rand(ftype, 3)
@@ -60,24 +58,7 @@ function prepare_inclusions(vol_frac_goal::Real, L::AbstractFloat, inclusiontype
     return inclusions
 end
 
-function optimize_midpoints(L::Real, inclusions::AbstractArray)
-    # Radius the use for penetration approximation:
-    #r0 = np.array([trunc_triangle.circumcircle for trunc_triangle in trunc_triangles])
-    # Using the radius of the (volume) equivalent sphere gives good packing:
-    function overlap(midpoints)
-        # compute overlap here
-        return 42 # TODO
-    end
-    res = optimize(overlap, rand(Float32, ), LBFGS())
-    optimal = minimizer(res)
-    #result = minimize(sum_potential3_and_grad, x0, args=(L, r0, volumes), method="l-bfgs-b", jac=True, tol=1E-4, options = {"disp" : True, "maxiter" : 50})
-
-    for (i, new_midpoint) in enumerate(eachcol(inclusions))
-        inclusions[i] = set_midpoint(inclusion, mod.(new_midpoint, L))
-    end
-end
-
-function voxelize(shape, L::Real, M::Integer)
+function voxelize(shape, L::AbstractFloat, M::Integer)
     delta_x = L/M
 
     # Inexpensive bounding box of prism to limit the voxels to check:
@@ -98,7 +79,7 @@ function voxelize(shape, L::Real, M::Integer)
     return voxel_indices[1:total_voxels]
 end
 
-function pack_inclusions!(inclusions::AbstractArray, M::T, L::Real, nr_tries::Integer, Δ::T) where T<:Integer
+function pack_inclusions!(inclusions::AbstractArray, M::T, L::AbstractFloat, nr_tries::Integer, Δ::T) where T<:Integer
     grain_count_type = Int16
     grain_ids = zeros(grain_count_type, M, M, M)
     overlaps = zeros(grain_count_type, M, M, M)
@@ -107,7 +88,6 @@ function pack_inclusions!(inclusions::AbstractArray, M::T, L::Real, nr_tries::In
     M3 = Int64(M)^3
     for (i, inclusion) in enumerate(inclusions)
         inclusion_voxels = voxelize(inclusion, L, M)
-        println(inclusion_voxels)
 
         overlap_min = M3
         Δ_min = zeros(SVector{3, typeof(M)})
@@ -115,7 +95,7 @@ function pack_inclusions!(inclusions::AbstractArray, M::T, L::Real, nr_tries::In
         for n_try in 1:nr_tries
             overlap_try = 0
             for inclusion_voxel in inclusion_voxels
-                wrapped_voxel = 1 .+ mod.(inclusion_voxel + Δ_try, M)
+                wrapped_voxel = one(typeof(M)) .+ mod.(inclusion_voxel + Δ_try, M)
                 if grain_ids[wrapped_voxel...] > 1 # claimed, so add overlap
                     overlap_try += 1
                 end
@@ -136,7 +116,7 @@ function pack_inclusions!(inclusions::AbstractArray, M::T, L::Real, nr_tries::In
 
         # Rerun with optimal delta_x, delta_y, delta_z
         for (j, inclusion_voxel) in enumerate(inclusion_voxels)
-            wrapped_voxel = 1 .+ mod.(inclusion_voxel + Δ_min, M)
+            wrapped_voxel = one(typeof(M)) .+ mod.(inclusion_voxel + Δ_min, M)
             inclusion_voxels[j] = wrapped_voxel
             if grain_ids[wrapped_voxel...] == 1 # still unclaimed binder
                 grain_ids[wrapped_voxel...] = i+2
@@ -146,7 +126,7 @@ function pack_inclusions!(inclusions::AbstractArray, M::T, L::Real, nr_tries::In
             end
         end
         push!(inclusions_voxels, sort(inclusion_voxels))
-        println("grain $i: WC fraction: $(inc_voxels/M3), tries: $nr_tries delta: $Δ_min")
+        println("grain $i: WC fraction: $(inc_voxels), tries: $nr_tries delta: $Δ_min")
     end
 
     return grain_ids, overlaps, inclusions_voxels
@@ -159,10 +139,12 @@ function euler_angles(grain_ids, inclusions)
     inclusions_angles = euler_angles.(trunc_triangles)
 
     euler_angles = zeros(size(grain_ids)..., 3)
-    for i in CartesianIndices(grain_ids):
-        if grain_ids[i] > 1:
+    for i in CartesianIndices(grain_ids)
+        if grain_ids[i] > 1
             grain_id = grain_ids[i] - 1
             euler_angles[i, :] = inclusions_angles[i]
+        end
+    end
 
     return euler_angles
 end
@@ -198,7 +180,7 @@ function make_mcp_bound!(grain_ids, gb_voxels, overlaps, voxel_indices, steps::I
     M = size(grain_ids)[1] # TODO allow non-square domains
 
     # Compute the exponentials for different number of neighbouring voxels
-    exp_ΔA_kBT = ((x)->exp(-x/kBT)).(SA[1,2,3,4])
+    exp_ΔA_kBT = exp.(-SA[1,2,3,4]/kBT)
 
     overlap_index = findall((x)-> x > 0, overlaps)
     if len(overlap_index) == 0

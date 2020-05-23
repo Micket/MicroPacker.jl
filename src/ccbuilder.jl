@@ -1,7 +1,7 @@
 include("utils.jl")
 #include("fileio.jl")
 include("packer.jl")
-include("truncated_tet.jl")
+include("shape/truncated_tet.jl")
 include("args.jl")
 
 options = parse_args(ARGS, s)
@@ -26,14 +26,9 @@ spacing = L / M
 inclusions = prepare_inclusions(vol_frac_goal, L, TruncatedTriangle, generator)
 
 # Sort triangles w.r.t. volume typically leads to better packing:
-sort!(inclusions, by=x->x.d_eq, rev=true)
+sort!(inclusions, by=volume, rev=true)
 
 println("Prepared $(length(inclusions)) inclusions")
-
-if options["use_potential"]
-    println("use_potential: TODO")
-    #ccb.optimize_midpoints(L, trunc_triangles)
-end
 
 #tt = TruncatedTriangle(SA[0., 0., 0.], SA[1. 0. 0.; 0. 1. 0.; 0. 0. 1.], r₀, k₀, d₀)
 #lower, upper = bounding_box(tt)
@@ -41,10 +36,9 @@ end
 
 grain_ids, overlaps, inclusions_voxels = pack_inclusions!(inclusions, M, L, nr_tries, Δ)
 
-phases = grain_ids .== 0
-good_voxels = zeros(Bool, size(grain_ids))
-euler_angles = zeros((size(grain_ids)..., 3))
+m_phase = phases(grain_ids)
+m_euler_angles = euler_angles(grain_ids, inclusions)
 
 make_mcp_bound!(grain_ids, inclusions_voxels, overlaps, voxel_indices, steps::Integer, kBT::Real)
 
-write_dream3d(options["f"], SA[L, L, L], grain_ids, phases, good_voxels, euler_angles)
+write_dream3d(options["f"], SA[L, L, L], grain_ids, phases, euler_angles)

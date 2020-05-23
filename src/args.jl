@@ -26,9 +26,6 @@ end
 
 add_arg_group!(s, "Packing")
 @add_arg_table! s begin
-    "--use_potential"
-    help = "Use repulsive potential"
-    action = :store_true
     "--nr_tries"
     help = "Number of random translations"
     arg_type = Integer
@@ -37,7 +34,7 @@ add_arg_group!(s, "Packing")
     help = "Maximum distance for randomized translations"
     default = 0.0
     arg_type = Real
-    "--m_coarse"
+    "--m_pack"
     help = "Grid resolution during packing"
     arg_type = Int16
     default = Int16(10)
