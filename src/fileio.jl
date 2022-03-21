@@ -38,28 +38,28 @@ function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles
         attrs(grp_cell_data)["AttributeMatrixType"] = [3]
         attrs(grp_cell_data)["TupleDimensions"] = M
 
-        dset_grain_ids = d_create(grp_cell_data, "GrainIds", datatype(Int32), (M[0]*M[1]*M[2],), compression=cmpr)
+        dset_grain_ids = d_create(grp_cell_data, "GrainIds", datatype(Int32), (prod(M),), compression=cmpr)
         attrs(dset_grain_ids)["ComponentDimensions"] = [1]
         attrs(dset_grain_ids)["DataArrayVersion"] = [2]
         attrs(dset_grain_ids)["ObjectType"] = "DataArray<int32_t>"
         attrs(dset_grain_ids)["TupleDimensions"] = M
         dset_grain_ids[:] = grain_ids
 
-        dset_phases = d_create(grp_cell_data, "Phases", datatype(Int32), (M[0]*M[1]*M[2],), compression=cmpr)
+        dset_phases = d_create(grp_cell_data, "Phases", datatype(Int32), (prod(M)), compression=cmpr)
         attrs(dset_phases)["ComponentDimensions"] = [1]
         attrs(dset_phases)["DataArrayVersion"] = [2]
         attrs(dset_phases)["ObjectType"] = "DataArray<int32_t>"
         attrs(dset_phases)["TupleDimensions"] = M
         dset_phases[:] = phases
 
-        dset_good_voxels = d_create(grp_cell_data, "GoodVoxels", datatype(UInt8), (M[0]*M[1]*M[2],), compression=cmpr)
+        dset_good_voxels = d_create(grp_cell_data, "GoodVoxels", datatype(UInt8), (prod(M)), compression=cmpr)
         attrs(dset_good_voxels)["ComponentDimensions"] = [1]
         attrs(dset_good_voxels)["DataArrayVersion"] = [2]
         attrs(dset_good_voxels)["ObjectType"] = "DataArray<bool>"
         attrs(dset_good_voxels)["TupleDimensions"] = M
         dset_good_voxels[:] = good_voxels
 
-        dset_euler_angles = d_create(grp_cell_data, "EulerAngles", datatype(Float32), (M[0]*M[1]*M[2], 3), compression=cmpr)
+        dset_euler_angles = d_create(grp_cell_data, "EulerAngles", datatype(Float32), (prod(M) 3), compression=cmpr)
         attrs(dset_euler_angles)["ComponentDimensions"] = [3]
         attrs(dset_euler_angles)["DataArrayVersion"] = [2]
         attrs(dset_euler_angles)["ObjectType"] = "DataArray<float>"
@@ -86,7 +86,7 @@ function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles
         attrs(dset_phase_types)["TupleDimensions"] = [2]
         dset_phase_types[:] = [999, 3, 1]
         if surface_voxels != nothing
-            dset_surface_voxels = d_create(grp_cell_data, "SurfaceVoxels", datatype(Int8), (M[0]*M[1]*M[2],), compression=cmpr)
+            dset_surface_voxels = d_create(grp_cell_data, "SurfaceVoxels", datatype(Int8), (prod(M),), compression=cmpr)
             attrs(dset_surface_voxels)["DataArrayVersion"] = [2]
             attrs(dset_surface_voxels)["TupleDimensions"] = M
             attrs(dset_surface_voxels)["ComponentDimensions"] = [1]
@@ -94,7 +94,7 @@ function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles
             dset_surface_voxels[:] = surface_voxels
         end
         if gb_voxels != nothing
-            dset_gb_voxels = d_create(grp_cell_data, "GrainBoundaryVoxels", datatype(Int8), (M[0]*M[1]*M[2],), compression=cmpr)
+            dset_gb_voxels = d_create(grp_cell_data, "GrainBoundaryVoxels", datatype(Int8), (prod(M),), compression=cmpr)
             attrs(dset_gb_voxels)["DataArrayVersion"] = [2]
             attrs(dset_gb_voxels)["TupleDimensions"] = M
             attrs(dset_gb_voxels)["ComponentDimensions"] = [1]
@@ -102,7 +102,7 @@ function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles
             dset_gb_voxels[:] = gb_voxels
         end
         if interface_voxels != nothing
-            dset_interface_voxels = d_create(grp_cell_data, "InterfaceVoxels", datatype(Int8), (M[0]*M[1]*M[2],), compression=cmpr)
+            dset_interface_voxels = d_create(grp_cell_data, "InterfaceVoxels", datatype(Int8), (prod(M),), compression=cmpr)
             attrs(dset_interface_voxels)["DataArrayVersion"] = [2]
             attrs(dset_interface_voxels)["TupleDimensions"] = M
             attrs(dset_interface_voxels)["ComponentDimensions"] = [1]
@@ -110,7 +110,7 @@ function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles
             dset_interface_voxels[:] = interface_voxels
         end
         if overlaps != nothing
-            dset_overlaps = d_create(grp_cell_data, "Overlaps", datatype(Int8), (M[0]*M[1]*M[2],), compression=cmpr)
+            dset_overlaps = d_create(grp_cell_data, "Overlaps", datatype(Int8), (prod(M),), compression=cmpr)
             attrs(dset_overlaps)["DataArrayVersion"] = [2]
             attrs(dset_overlaps)["TupleDimensions"] = M
             attrs(dset_overlaps)["ComponentDimensions"] = [1]

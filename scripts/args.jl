@@ -4,6 +4,7 @@ s = ArgParseSettings()
 @add_arg_table! s begin
     "-f"
     help = "Output base filename"
+    arg_type = String
     "-L"
     help = "Cell length (volume is L³)"
     arg_type = AbstractFloat
@@ -32,8 +33,8 @@ add_arg_group!(s, "Packing")
     default = 2500
     "--delta"
     help = "Maximum distance for randomized translations"
-    default = 0.0
     arg_type = Real
+    default = 0.0
     "--m_pack"
     help = "Grid resolution during packing"
     arg_type = Int16
@@ -59,9 +60,9 @@ end
 add_arg_group!(s, "Potts simulation")
 @add_arg_table! s begin
     "--mc_steps"
+    help = "Monte-Carlo steps (scales with (m*L)⁴. Set to zero to turn off."
     arg_type = AbstractFloat
     default = 0.05
-    help = "Monte-Carlo steps (scales with (m*L)⁴. Set to zero to turn off."
     "--tau"
     help = "Ficticious temperature in Potts model"
     arg_type = AbstractFloat
