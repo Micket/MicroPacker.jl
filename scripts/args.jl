@@ -1,4 +1,5 @@
 using ArgParse
+import Distributions: Uniform, Weibull, Dirac
 
 s = ArgParseSettings()
 @add_arg_table! s begin
@@ -67,4 +68,21 @@ add_arg_group!(s, "Potts simulation")
     help = "Ficticious temperature in Potts model"
     arg_type = AbstractFloat
     default = 0.5
+end
+
+function parse_dist(arg)
+    # Parses input string for given distribution.
+    # Returns a distribution, and the average
+    d, params = split(arg, ':')
+    params = [parse(Float64, p) for p in split(params, ',')]
+    if d == "U"
+        return Uniform(l, u), sum(params)/2
+    elseif d == "W"
+        a, mu = params
+        return Weibull(a, mu), mu
+    elseif d == "C"
+        return Dirac(params[1]), params[1]
+    else
+        throw(DomainError(d, "Unrecognized distribution function"))
+    end
 end

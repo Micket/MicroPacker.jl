@@ -1,14 +1,13 @@
 using StaticArrays
 using LinearAlgebra
-using Optim
 
-function random_axis(t::Type{T}) where T <: AbstractFloat
+function random_axis(t::Type{T}) where T
     θ = rand(t)*2*π
     ϕ = acos(2*rand(t)-1)
     return SA[sin(ϕ)*cos(θ), sin(ϕ)*sin(θ), cos(ϕ)]
 end
 
-function random_rotation(t::Type{T}) where T <: AbstractFloat
+function random_rotation(t::Type{T}) where T
     small = T(0.1)
     r0 = random_axis(t)
     dum = zero(T)
@@ -40,7 +39,7 @@ function euler_angles(R)
     return SA[ϕ, θ, ψ]
 end
 
-function prepare_inclusions(vol_frac_goal::AbstractFloat, L::AbstractFloat, inclusiontype::Type, generator)
+function prepare_inclusions(vol_frac_goal::Real, L::Real, inclusiontype::Type, generator)
     ftype = typeof(L)
     total_volume = L^3
 
@@ -58,10 +57,10 @@ function prepare_inclusions(vol_frac_goal::AbstractFloat, L::AbstractFloat, incl
     return inclusions
 end
 
-function voxelize(shape, L::AbstractFloat, M::Integer)
+function voxelize(shape, L::Real, M::Integer)
     delta_x = L/M
 
-    # Inexpensive bounding box of prism to limit the voxels to check:
+    # Inexpensive bounding box to limit the voxels to check:
     lower, upper = bounding_box(shape)
     loweri = floor.(typeof(M), lower*M/L)
     upperi = ceil.(typeof(M), upper*M/L)
@@ -79,7 +78,7 @@ function voxelize(shape, L::AbstractFloat, M::Integer)
     return voxel_indices[1:total_voxels]
 end
 
-function pack_inclusions!(inclusions::AbstractArray, M::T, L::AbstractFloat, nr_tries::Integer, Δ::T) where T<:Integer
+function pack_inclusions!(inclusions::AbstractArray, M::T, L::Real, nr_tries::Integer, Δ::T) where T<:Integer
     grain_count_type = Int16
     grain_ids = zeros(grain_count_type, M, M, M)
     overlaps = zeros(grain_count_type, M, M, M)
@@ -130,105 +129,4 @@ function pack_inclusions!(inclusions::AbstractArray, M::T, L::AbstractFloat, nr_
     end
 
     return grain_ids, overlaps, inclusions_voxels
-end
-
-phases(grain_ids) = grain_ids .== 0
-
-# Computes euler angles as used by Dream3D
-function euler_angles(grain_ids, inclusions)
-    inclusions_angles = euler_angles.(trunc_triangles)
-
-    euler_angles = zeros(size(grain_ids)..., 3)
-    for i in CartesianIndices(grain_ids)
-        if grain_ids[i] > 1
-            grain_id = grain_ids[i] - 1
-            euler_angles[i, :] = inclusions_angles[i]
-        end
-    end
-
-    return euler_angles
-end
-
-# Helper
-function check_nb(id, old_id, new_id)
-    if id == old_id
-        return 1 # the new id is different, add 1 area
-    elseif id == new_id
-        return -1 # the new id is the same, subtract 1 area
-    else
-        return 0
-    end
-end
-
-function neighbours(i::CartesianIndex{3}, M::Integer)
-    # right, left, forward, backward, up, down
-    sub(x) = ifelse(x > 1, x-1, M)
-    add(x) = ifelse(x < M, x+1, 1)
-    return SA[
-        CartesianIndex(sub(i.I[1]), i.I[2], i.I[3]),
-        CartesianIndex(add(i.I[1]), i.I[2], i.I[3]),
-        CartesianIndex(i.I[1], sub(i.I[2]), i.I[3]),
-        CartesianIndex(i.I[1], add(i.I[2]), i.I[3]),
-        CartesianIndex(i.I[1], i.I[2], sub(i.I[3])),
-        CartesianIndex(i.I[1], i.I[2], add(i.I[3])),
-    ]
-end
-
-# Monte-Carlo Potts model suitable for minimizing ground boundaries by simulation grain boundary migrations.
-# Effectively minimizes contiguity
-function make_mcp_bound!(grain_ids, gb_voxels, overlaps, voxel_indices, steps::Integer, kBT::Real)
-    M = size(grain_ids)[1] # TODO allow non-square domains
-
-    # Compute the exponentials for different number of neighbouring voxels
-    exp_ΔA_kBT = exp.(-SA[1,2,3,4]/kBT)
-
-    overlap_index = findall((x)-> x > 0, overlaps)
-    if len(overlap_index) == 0
-        return
-    end
-
-    for step in 1:steps
-        # Choose a random voxel in the overlapping regions
-        gb_voxel_index = rand(overlap_index)
-
-        # Check if it is a gb voxel
-        if gb_voxels[gb_voxel_index]
-            gb_voxel_id = grain_ids[gb_voxel_index]
-            nb_indices = neighbours(gb_voxel_index, M)
-
-            # Clear and populate the *set* of different neighbor indices that are allowed; id > 1, i.e. not binder
-            nb_ids = grain_ids[nb_indices]
-
-            # Find all possible values the voxel could switch to.
-            nb_set = @SVector zeros(6)
-            nr_diff_ids = 0
-            for i in 1:6
-                nb_id = nb_ids[i]
-                if nb_id > 1 && nb_id != gb_voxel_id && nb_id ∈ nb_set
-                    # Not in set and gb_voxel_id belongs to nb_id and can thus be changed to nb_id
-                    if insorted(voxel_indices[nb_id-1], gb_voxel_index)
-                        nr_diff_ids += 1
-                        nb_set[nr_diff_ids] = nb_id
-                    end
-                end
-            end
-
-            # the set of allowed changes can be zero if we are at the edges of a truncated triangle
-            if nr_diff_ids > 0
-                new_id = nb_set[rand(1:nr_diff_ids)]
-
-                ΔA = check_nb.(nb_ids, gb_voxel_id, new_id)
-                sum_ΔA = sum(ΔA)
-
-                # Metropolis algorithm
-                if sum_ΔA <= 0 || (sum_ΔA > 0 && rand() < exp_ΔA_kBT[sum_ΔA-1])
-                    grain_ids[gb_voxel_index] = new_id
-                    gb_voxels[gb_voxel_index] += sum_ΔA
-                    for (δ, nb_index) in zip(ΔA, nb_indices)
-                        gb_voxels[nb_index] += δ
-                    end
-                end
-            end
-        end
-    end
 end

@@ -38,17 +38,15 @@ struct TTGenerator{Fr,Fk,Fd}
     d_eq::Fd
 end
 
-function (g::TTGenerator)(midpoint, rot)
-    #midpoint = L * @SVector rand(3)
-    #rot = GeometryTools.random_rotation()
+function (g::TTGenerator)(midpoint::SVector{3,T}, rot::SMatrix{3,3,T,9}) where T
     TruncatedTriangle(midpoint, rot, g.r(), g.k(), g.d_eq())
 end
 
-volume(shape::TruncatedTriangle) = π/6 * shape.d_eq^3
-
-function set_midpoint(t::TruncatedTriangle, midpoint)
+function set_midpoint(t::TruncatedTriangle, midpoint::SVector{3,T}) where T
     return TruncatedTriangle(midpoint, t.rot, t.r, t.k, t.d_eq, t.t, t.vertices)
 end
+
+volume(shape::TruncatedTriangle) = π/6 * shape.d_eq^3
 
 function bounding_box(shape::TruncatedTriangle)
     lower = shape.midpoint
@@ -62,11 +60,11 @@ function bounding_box(shape::TruncatedTriangle)
     return lower + shape.midpoint, upper + shape.midpoint
 end
 
-function inside(shape::TruncatedTriangle, r0)
+function inside(shape::TruncatedTriangle, p0::SVector{3,T}) where T
     testline(p, line) = (p[2] - line[1][2])*(line[2][1] - line[1][1]) - (line[2][2] - line[1][2])*(p[1] - line[1][1])
 
     # Rotate to coordinates of the triangle as used above
-    r = shape.rot' * (r0 - shape.midpoint)
+    r = shape.rot' * (p0 - shape.midpoint)
 
     # the triangle is within the x-y plane.
     return -shape.t/2 < r[3] < shape.t/2 &&

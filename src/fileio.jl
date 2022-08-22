@@ -1,5 +1,7 @@
 using HDF5
 
+# This entire file is still just a rough draft of the original python code. Julia code is completely broken.
+
 function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles;
                surface_voxels=nothing, interface_voxels=nothing, overlaps=nothing, compress=false)
     M = size(grain_ids)
@@ -59,7 +61,7 @@ function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles
         attrs(dset_good_voxels)["TupleDimensions"] = M
         dset_good_voxels[:] = good_voxels
 
-        dset_euler_angles = d_create(grp_cell_data, "EulerAngles", datatype(Float32), (prod(M) 3), compression=cmpr)
+        dset_euler_angles = d_create(grp_cell_data, "EulerAngles", datatype(Float32), (prod(M), 3), compression=cmpr)
         attrs(dset_euler_angles)["ComponentDimensions"] = [3]
         attrs(dset_euler_angles)["DataArrayVersion"] = [2]
         attrs(dset_euler_angles)["ObjectType"] = "DataArray<float>"
@@ -85,7 +87,7 @@ function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles
         attrs(dset_phase_types)["ObjectType"] = "DataArray<uint32_t>"
         attrs(dset_phase_types)["TupleDimensions"] = [2]
         dset_phase_types[:] = [999, 3, 1]
-        if surface_voxels != nothing
+        if surface_voxels !== nothing
             dset_surface_voxels = d_create(grp_cell_data, "SurfaceVoxels", datatype(Int8), (prod(M),), compression=cmpr)
             attrs(dset_surface_voxels)["DataArrayVersion"] = [2]
             attrs(dset_surface_voxels)["TupleDimensions"] = M
@@ -93,7 +95,7 @@ function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles
             attrs(dset_surface_voxels)["ObjectType"] = "DataArray<int8_t>"
             dset_surface_voxels[:] = surface_voxels
         end
-        if gb_voxels != nothing
+        if gb_voxels !== nothing
             dset_gb_voxels = d_create(grp_cell_data, "GrainBoundaryVoxels", datatype(Int8), (prod(M),), compression=cmpr)
             attrs(dset_gb_voxels)["DataArrayVersion"] = [2]
             attrs(dset_gb_voxels)["TupleDimensions"] = M
@@ -101,7 +103,7 @@ function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles
             attrs(dset_gb_voxels)["ObjectType"] = "DataArray<int8_t>"
             dset_gb_voxels[:] = gb_voxels
         end
-        if interface_voxels != nothing
+        if interface_voxels !== nothing
             dset_interface_voxels = d_create(grp_cell_data, "InterfaceVoxels", datatype(Int8), (prod(M),), compression=cmpr)
             attrs(dset_interface_voxels)["DataArrayVersion"] = [2]
             attrs(dset_interface_voxels)["TupleDimensions"] = M
@@ -109,7 +111,7 @@ function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles
             attrs(dset_interface_voxels)["ObjectType"] = "DataArray<int8_t>"
             dset_interface_voxels[:] = interface_voxels
         end
-        if overlaps != nothing
+        if overlaps !== nothing
             dset_overlaps = d_create(grp_cell_data, "Overlaps", datatype(Int8), (prod(M),), compression=cmpr)
             attrs(dset_overlaps)["DataArrayVersion"] = [2]
             attrs(dset_overlaps)["TupleDimensions"] = M
@@ -122,8 +124,8 @@ function write_dream3d(filename, L, grain_ids, phases, good_voxels, euler_angles
         attrs(pipeline)["Number_Filters"] = [0]
     end
 
-    write_xdmf(filename, M, spacing, surface_voxels != Nothing, gb_voxels != Nothing,
-               interface_voxels != Nothing, overlaps != Nothing)
+    write_xdmf(filename, M, spacing; surface_voxels !== nothing, gb_voxels !== nothing,
+               interface_voxels !== nothing, overlaps !== nothing)
 end
 
 function write_xdmf(filename, M, spacing; surface_voxels=false, gb_voxels=false, interface_voxels=false, overlaps=false)
